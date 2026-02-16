@@ -1,3 +1,4 @@
+import { isStudent } from "../guards/user";
 import type { Member } from "../types/user";
 
 type PropsType = {
@@ -42,7 +43,7 @@ export const MemberTable = ({ members }: PropsType) => {
             <td>{m.phone}</td>
             <td>{m.hobbies.join(", ")}</td>
             <td>{m.url}</td>
-            {m.role === "student" ? (
+            {isStudent(m) ? (
               <>
                 <td>{m.studyMinutes}</td>
                 <td>{m.taskCode}</td>

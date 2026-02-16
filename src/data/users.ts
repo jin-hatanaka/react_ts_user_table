@@ -1,4 +1,4 @@
-import type { Member } from "../types/user";
+import type { Member, Mentor, Student } from "../types/user";
 
 export const USER_LIST: Member[] = [
   {
@@ -130,3 +130,37 @@ export const USER_LIST: Member[] = [
     availableStudent: [],
   },
 ];
+
+export const initialStudent: Student = {
+  id: 0,
+  name: "",
+  role: "student",
+  email: "",
+  age: 0,
+  postCode: "",
+  phone: "",
+  hobbies: [],
+  url: "",
+  studyMinutes: 0,
+  taskCode: 0,
+  studyLangs: [],
+  score: 0,
+  availableMentor: [],
+};
+
+export const initialMentor: Mentor = {
+  id: 0,
+  name: "",
+  role: "mentor",
+  email: "",
+  age: 0,
+  postCode: "",
+  phone: "",
+  hobbies: [],
+  url: "",
+  experienceDays: 0,
+  useLangs: [],
+  availableStartCode: 0,
+  availableEndCode: 0,
+  availableStudent: [],
+};

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { CreateUserButton } from "./components/CreateUserButton";
 import { MemberTable } from "./components/MemberTable";
 import type { Member, SortKey, SortOrder } from "./types/user";
@@ -6,7 +6,8 @@ import { USER_LIST } from "./data/users";
 import { StudentTable } from "./components/StudentTable";
 import { MentorTable } from "./components/MentorTable";
 import { Tabs } from "./components/Tabs";
-import { CreateUserModal } from "./components/CreateUserModal";
+import { SelectUserModal } from "./components/SelectUserModal";
+import { isMentor, isStudent } from "./guards/user";
 
 // テーブル表示までの流れ
 // member（初期データ）
@@ -21,8 +22,8 @@ import { CreateUserModal } from "./components/CreateUserModal";
 
 function App() {
   const [members, setMembers] = useState<Member[]>(USER_LIST);
-  const students = members.filter((user) => user.role === "student");
-  const mentors = members.filter((user) => user.role === "mentor");
+  const students = members.filter(isStudent);
+  const mentors = members.filter(isMentor);
 
   const [tab, setTab] = useState<"all" | "student" | "mentor">("all");
 
@@ -38,7 +39,7 @@ function App() {
   // 初期データでは、availableMentorとavailableStudentが入力されてないので作成する
   const displayMembers = useMemo(() => {
     return members.map((member) => {
-      if (member.role === "student") {
+      if (isStudent(member)) {
         const availableMentor = mentors
           .filter(
             (mentor) =>
@@ -60,25 +61,25 @@ function App() {
         return { ...member, availableStudent };
       }
     });
-  }, [members]);
+  }, [members, students, mentors]);
 
   // studentのみのデータに絞り込む
   const studentsWithAvailableMentor = useMemo(
-    () => displayMembers.filter((member) => member.role === "student"),
+    () => displayMembers.filter(isStudent),
     [displayMembers],
   );
 
   // mentorのみのデータに絞り込む
   const mentorsWithAvailableStudent = useMemo(
-    () => displayMembers.filter((member) => member.role === "mentor"),
+    () => displayMembers.filter(isMentor),
     [displayMembers],
   );
 
-  // タブを切り替えたらソートをリセット
-  useEffect(() => {
+  // ソートをリセットする
+  const resetSort = () => {
     setSortKey(null);
     setSortOrder("asc");
-  }, [tab]);
+  };
 
   // 同じ列をクリックしたら昇降反転、違う列なら asc からスタート
   const handleSort = (key: SortKey) => {
@@ -118,9 +119,9 @@ function App() {
   return (
     <>
       <div className="d-flex gap-3 justify-content-center mt-1">
-        <Tabs tab={tab} setTab={setTab} />
+        <Tabs tab={tab} setTab={setTab} resetSort={resetSort} />
         <CreateUserButton onClick={() => setIsOpen(true)} />
-        <CreateUserModal
+        <SelectUserModal
           isOpen={isOpen}
           closeModal={closeModal}
           members={members}
