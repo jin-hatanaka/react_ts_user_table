@@ -1,35 +1,142 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useMemo, useState } from "react";
+import { CreateUserButton } from "./components/CreateUserButton";
+import { MemberTable } from "./components/MemberTable";
+import type { Member, SortKey, SortOrder } from "./types/user";
+import { USER_LIST } from "./data/users";
+import { StudentTable } from "./components/StudentTable";
+import { MentorTable } from "./components/MentorTable";
+import { Tabs } from "./components/Tabs";
+import { SelectUserModal } from "./components/SelectUserModal";
+import { isMentor, isStudent } from "./guards/user";
+
+// テーブル表示までの流れ
+// member（初期データ）
+// ↓ 表示用に加工
+// displayMember（availableMentorとavailableStudentの計算）
+// ↓ 抽出
+// studentsWithAvailableMentor/mentorsWithAvailableStudent（student/mentorのみのデータに絞り込む）
+// ↓ ソート
+// sortedStudents/sortedMentors（ソートした配列にする）
+// ↓
+// 表示
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [members, setMembers] = useState<Member[]>(USER_LIST);
+  const students = members.filter(isStudent);
+  const mentors = members.filter(isMentor);
+
+  const [tab, setTab] = useState<"all" | "student" | "mentor">("all");
+
+  // どの列を並べるか状態を管理する
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  // どの向きで並べるか状態を管理する
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+
+  const [isOpen, setIsOpen] = useState(false);
+  const closeModal = () => setIsOpen(false);
+
+  // ユーザー一覧の表示用配列を作成する
+  // 初期データでは、availableMentorとavailableStudentが入力されてないので作成する
+  const displayMembers = useMemo(() => {
+    return members.map((member) => {
+      if (isStudent(member)) {
+        const availableMentor = mentors
+          .filter(
+            (mentor) =>
+              member.taskCode >= mentor.availableStartCode &&
+              member.taskCode <= mentor.availableEndCode,
+          )
+          .map((mentor) => mentor.name);
+
+        return { ...member, availableMentor };
+      } else {
+        const availableStudent = students
+          .filter(
+            (student) =>
+              student.taskCode >= member.availableStartCode &&
+              student.taskCode <= member.availableEndCode,
+          )
+          .map((student) => student.name);
+
+        return { ...member, availableStudent };
+      }
+    });
+  }, [members, students, mentors]);
+
+  // studentのみのデータに絞り込む
+  const studentsWithAvailableMentor = useMemo(
+    () => displayMembers.filter(isStudent),
+    [displayMembers],
+  );
+
+  // mentorのみのデータに絞り込む
+  const mentorsWithAvailableStudent = useMemo(
+    () => displayMembers.filter(isMentor),
+    [displayMembers],
+  );
+
+  // ソートをリセットする
+  const resetSort = () => {
+    setSortKey(null);
+    setSortOrder("asc");
+  };
+
+  // 同じ列をクリックしたら昇降反転、違う列なら asc からスタート
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortOrder("asc");
+    }
+  };
+
+  // 生徒の表示用配列を作成する
+  const sortedStudents = useMemo(() => {
+    if (!sortKey) return studentsWithAvailableMentor;
+
+    const sorted = [...studentsWithAvailableMentor].sort((a, b) => {
+      const aValue = a[sortKey as "studyMinutes" | "score"];
+      const bValue = b[sortKey as "studyMinutes" | "score"];
+
+      return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
+    });
+    return sorted;
+  }, [studentsWithAvailableMentor, sortKey, sortOrder]);
+
+  // メンターの表示用配列を作成
+  const sortedMentors = useMemo(() => {
+    if (!sortKey) return mentorsWithAvailableStudent;
+
+    const sorted = [...mentorsWithAvailableStudent].sort((a, b) => {
+      return sortOrder === "asc"
+        ? a.experienceDays - b.experienceDays
+        : b.experienceDays - a.experienceDays;
+    });
+    return sorted;
+  }, [mentorsWithAvailableStudent, sortKey, sortOrder]);
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <div className="d-flex gap-3 justify-content-center mt-1">
+        <Tabs tab={tab} setTab={setTab} resetSort={resetSort} />
+        <CreateUserButton onClick={() => setIsOpen(true)} />
+        <SelectUserModal
+          isOpen={isOpen}
+          closeModal={closeModal}
+          members={members}
+          setMembers={setMembers}
+        />
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      {tab === "all" && <MemberTable members={displayMembers} />}
+      {tab === "student" && (
+        <StudentTable students={sortedStudents} onSort={handleSort} />
+      )}
+      {tab === "mentor" && (
+        <MentorTable mentors={sortedMentors} onSort={handleSort} />
+      )}
     </>
-  )
+  );
 }
 
-export default App
+export default App;
