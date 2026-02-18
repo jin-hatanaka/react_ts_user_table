@@ -23,16 +23,9 @@ export const CreateUserModal = ({
   members,
   setMembers,
 }: PropsType) => {
-  const [newUser, setNewUser] = useState<Member>(initialStudent);
-
-  // モーダル種別変更時にフォーム初期値を設定
-  useEffect(() => {
-    if (openModalType === "student") {
-      setNewUser(initialStudent);
-    } else {
-      setNewUser(initialMentor);
-    }
-  }, [openModalType]);
+  const [newUser, setNewUser] = useState<Member>(
+    openModalType === "student" ? initialStudent : initialMentor,
+  );
 
   // idだけの配列に変換し、最大のidを取得し、インクリメントする
   const newUserId: number = Math.max(...members.map((m) => m.id)) + 1;

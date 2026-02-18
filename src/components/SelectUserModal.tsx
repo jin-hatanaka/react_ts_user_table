@@ -59,12 +59,14 @@ export const SelectUserModal = ({
         </div>
       </Modal>
 
-      <CreateUserModal
-        openModalType={openModalType}
-        closeModal={() => setOpenModalType(null)}
-        members={members}
-        setMembers={setMembers}
-      />
+      {openModalType && (
+        <CreateUserModal
+          openModalType={openModalType}
+          closeModal={() => setOpenModalType(null)}
+          members={members}
+          setMembers={setMembers}
+        />
+      )}
     </>
   );
 };
